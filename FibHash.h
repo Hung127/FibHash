@@ -62,7 +62,7 @@ private:
 
 public:
     bool insert(uint key) {
-        if (2 * count >= size) {
+        if (2u * count >= size) {
             resize(size * 2, sizeLog + 1);
         }
 
@@ -118,22 +118,25 @@ public:
             return false;
         } else if (table[hash].isDeleted && table[hash].key == key) {
             return false;
-            // found
+            // found -> delete
         } else if (!table[hash].isDeleted && table[hash].key == key) {
             count--;
             table[hash].isDeleted = true;
             return true;
         }
+        // linear probing
         for (uint i = (hash + 1) & (size - 1); i != hash; i = (i + 1) & (size - 1)) {
             if (!table[i].isOccupied) {
                 return false;
-                // key found but deleted
+                // key found
             } else if (table[i].key == key) {
+                // key found and not deleted
                 if (!table[i].isDeleted) {
                     table[i].isDeleted = true;
                     count--;
                     return true;
                 }
+                // key found but deleted
                 return false;
             } 
         }
@@ -168,6 +171,7 @@ public:
 
     // assume that tableSize is always be a power of 2
     FibonacciHashTable(uint tableSize) : size(std::max(1u, tableSize)), sizeLog(getLog2(tableSize)), table(std::max(1u, tableSize)), count(0) {
+        // this is just for testing
         // int temp = sizeLog;
         // sizeLog = 3;
         // for (uint i = 0; i < 10; i++) {
