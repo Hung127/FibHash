@@ -1,1 +1,1 @@
-# FibHash
+# Fibonacci hashing
