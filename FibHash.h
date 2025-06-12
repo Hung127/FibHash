@@ -2,6 +2,7 @@
 #define FIB_HASH_H
 #include <iostream>
 #include <vector>
+#include <functional>
 #define uint unsigned int
 #define FIB_CONST 2654435759
 #define WORD_SIZE 32
@@ -15,7 +16,7 @@ uint getLog2(uint num) {
     return count;
 }
 
-class FibonacciHashTable {
+class HashTable {
 private:
     struct Entry {
         uint key;
@@ -27,17 +28,24 @@ private:
     
     // size of the hash table
     uint size;
-    // sizeLog = log2(size)
+    // sizeLog = log2(size )
     uint sizeLog;
     // number of keys
     uint count;
     // hash table
     std::vector<Entry> table;
 
-    uint hashFunction(uint key) {
+    // function pointer for hashFunction choice (something like that)
+    std::function<uint(uint)> hashFunction;
+
+    uint fibHashFunction(uint key) {
         // use ((unsigned long long) key * FIB_CONST) & ((1ull << WORD_SIZE) - 1) to make sure 
         // that it will always fits int 32 unsigned bits (number <= 2^32 - 1)
         return (((unsigned long long) key * FIB_CONST) & ((1ull << WORD_SIZE) - 1)) >> (WORD_SIZE - sizeLog);
+    }
+
+    uint moduloHashFunction(uint key) {
+        return (key % size);
     }
 
     void resize(uint newSize, int newSizeLog) {
@@ -66,79 +74,60 @@ public:
             resize(size * 2, sizeLog + 1);
         }
 
+        bool foundFirstDeleted = false;
+        uint firstDeletedIdx = 0; // set a temp value for firstDeleted idx
+        uint i = 0;
         uint hash = hashFunction(key);
-        bool firstDeleted = false;
-        uint firstDeletedIdx = 0;
-
-        if (!table[hash].isOccupied) {
-            table[hash].key = key;
-            table[hash].isOccupied = true;
-            table[hash].isDeleted = false;
-            count++;
-            return true;
-        } else if (table[hash].isDeleted) {
-            firstDeleted = true;
-            firstDeletedIdx = hash;
-        }
-
         // linear probing
-        uint i = (hash + 1) & (size - 1);
-        for (; i != hash; i = (i + 1) & (size - 1)) {
+        while (i < size) {
+            uint idx = (hash + i) & (size - 1);
             // found empty slot
-            if (!table[i].isOccupied)
+            if (!table[idx].isOccupied) {
                 break;
-            else if (table[i].isDeleted) {
-                if (!firstDeleted) {
-                    firstDeletedIdx = i;
-                    firstDeleted = true;
+                // deleted
+            } else if (table[idx].isDeleted) {
+                // store the first deleted index
+                if (!foundFirstDeleted) {
+                    foundFirstDeleted = true;
+                    firstDeletedIdx = idx;
                 }
-                // key already existed (duplicated) and not deleted
-            } else if (table[i].key == key) {
+                // already existed
+            } else if (table[idx].key == key) {
                 return false;
             }
+            i++;
         }
-
-        // make sure that always add key to deleted place first (if can)
-        if (firstDeleted) {
-            i = firstDeletedIdx;
-        }
-
-        // add to empty slot or deleted slot
-        table[i].key = key;
-        table[i].isDeleted = false;
-        table[i].isOccupied = true;
+        // always make sure that if there is any deleted slot, insert to that first, then empty slot
+        uint insertIdx = foundFirstDeleted ? firstDeletedIdx : (hash + i) & (size - 1);
+        // insertion
+        table[insertIdx].key = key;
+        table[insertIdx].isOccupied = true;
+        table[insertIdx].isDeleted = false;
         count++;
         return true;
     }
 
     bool remove(uint key) {
         uint hash = hashFunction(key);
-        // empty slot
-        if (!table[hash].isOccupied) {
-            return false;
-        } else if (table[hash].isDeleted && table[hash].key == key) {
-            return false;
-            // found -> delete
-        } else if (!table[hash].isDeleted && table[hash].key == key) {
-            count--;
-            table[hash].isDeleted = true;
-            return true;
-        }
         // linear probing
-        for (uint i = (hash + 1) & (size - 1); i != hash; i = (i + 1) & (size - 1)) {
-            if (!table[i].isOccupied) {
+        uint i = 0;
+        while (i < size)  {
+            uint idx = (hash + i) & (size - 1);
+            // empty slot
+            if (!table[idx].isOccupied) {
                 return false;
                 // key found
-            } else if (table[i].key == key) {
+            } else if (table[idx].key == key) {
                 // key found and not deleted
-                if (!table[i].isDeleted) {
-                    table[i].isDeleted = true;
+                if (!table[idx].isDeleted) {
+                    table[idx].isDeleted = true;
                     count--;
                     return true;
                 }
                 // key found but deleted
                 return false;
             } 
+            i++;
         }
         // do not found any key
         return false;
@@ -146,38 +135,37 @@ public:
 
     bool search(uint key) {
         uint hash = hashFunction(key);
-        // empty slot
-        if (!table[hash].isOccupied) {
-            return false;
-        } else if (table[hash].isDeleted && table[hash].key == key) {
-            return false;
-            // found
-        } else if (!table[hash].isDeleted && table[hash].key == key) {
-            return true;
-        }
-        for (uint i = (hash + 1) & (size - 1); i != hash; i = (i + 1) & (size - 1)) {
-            if (!table[i].isOccupied) {
+        // linear probing
+        uint i = 0;
+        while (i < size)  {
+            uint idx = (hash + i) & (size - 1);
+            // empty slot
+            if (!table[idx].isOccupied) {
                 return false;
-                // key found but deleted
-            } else if (table[i].key == key) {
-                if (!table[i].isDeleted)
+                // key found
+            } else if (table[idx].key == key) {
+                // key found and not deleted
+                if (!table[idx].isDeleted) {
                     return true;
+                }
+                // key found but deleted
                 return false;
-            } 
+            }
+            i++;
         }
         // do not found any key
         return false;
     }
 
     // assume that tableSize is always be a power of 2
-    FibonacciHashTable(uint tableSize) : size(std::max(1u, tableSize)), sizeLog(getLog2(tableSize)), table(std::max(1u, tableSize)), count(0) {
-        // this is just for testing
-        // int temp = sizeLog;
-        // sizeLog = 3;
-        // for (uint i = 0; i < 10; i++) {
-        //     std::cout << hashFunction(i) << " " << i << "\n";
-        // }
-        // sizeLog = temp;
+    HashTable(uint tableSize, bool useFibonacciHashing = true) : size(std::max(1u, tableSize)),
+                        sizeLog(getLog2(tableSize)), table(std::max(1u, tableSize)), count(0) {
+        // choice of use hash function
+        if (useFibonacciHashing) {
+            hashFunction = [this](uint key) { return this->fibHashFunction(key); };
+        } else {
+            hashFunction = [this](uint key) { return this->moduloHashFunction(key); };
+        }
     }
 };
 
