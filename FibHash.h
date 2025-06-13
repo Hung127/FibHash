@@ -25,6 +25,25 @@ private:
         // constructor for entries
         Entry() : key(0), isDeleted(false), isOccupied(false) {}
     };
+
+    struct TestSpecs {
+        unsigned long long totalSearchProbing;
+        unsigned long long totalInsertProbing;
+        unsigned long long totalDeleteProbing;
+        uint maxInsertProbing;
+        uint maxSearchProbing;
+        uint maxDeleteProbing;
+        uint insertCount;
+        uint searchCount;
+        uint deleteCount;
+        uint insertionCollisions;
+        TestSpecs() : totalDeleteProbing(0), totalInsertProbing(0),
+                        totalSearchProbing(0), maxInsertProbing(0),
+                        maxSearchProbing(0), maxDeleteProbing(0),
+                        insertCount(0), searchCount(0), deleteCount(0), insertionCollisions(0) {}
+    };
+
+    TestSpecs status;
     
     // size of the hash table
     uint size;
@@ -49,6 +68,8 @@ private:
     }
 
     void resize(uint newSize, int newSizeLog) {
+        TestSpecs newStatus;
+        status = newStatus;
         // create a new vector to hold old keys
         std::vector<Entry> oldTable(table);
         size = newSize;
@@ -70,10 +91,16 @@ private:
 
 public:
     bool insert(uint key) {
-        if (2u * count >= size) {
-            resize(size * 2, sizeLog + 1);
-        }
+        // if (2u * count >= size) {
+        //     resize(size * 2, sizeLog + 1);
+        // }
+        // udate status
+        status.insertCount++;
 
+        if (count >= size) {
+            return false;
+        }
+        bool isSuccess = false;
         bool foundFirstDeleted = false;
         uint firstDeletedIdx = 0; // set a temp value for firstDeleted idx
         uint i = 0;
@@ -93,6 +120,12 @@ public:
                 }
                 // already existed
             } else if (table[idx].key == key) {
+                // update status
+                if (i > 0) {
+                    status.insertionCollisions++;
+                }
+                status.totalInsertProbing += i;
+                status.maxInsertProbing = std::max(i, status.maxInsertProbing);
                 return false;
             }
             i++;
@@ -104,10 +137,21 @@ public:
         table[insertIdx].isOccupied = true;
         table[insertIdx].isDeleted = false;
         count++;
+
+        // update status
+        if (i > 0) {
+            status.insertionCollisions++;
+        }
+        status.totalInsertProbing += i;
+        status.maxInsertProbing = std::max(i, status.maxInsertProbing);
+
         return true;
     }
 
     bool remove(uint key) {
+        // update status
+        status.deleteCount++;
+        bool isSuccess = false;
         uint hash = hashFunction(key);
         // linear probing
         uint i = 0;
@@ -115,46 +159,83 @@ public:
             uint idx = (hash + i) & (size - 1);
             // empty slot
             if (!table[idx].isOccupied) {
-                return false;
+                break;
                 // key found
             } else if (table[idx].key == key) {
                 // key found and not deleted
                 if (!table[idx].isDeleted) {
                     table[idx].isDeleted = true;
                     count--;
-                    return true;
+                    isSuccess = true;
+                    break;
                 }
                 // key found but deleted
-                return false;
+                break;
             } 
             i++;
         }
+        // update status
+        status.maxDeleteProbing = std::max(i, status.maxDeleteProbing);
+        status.totalDeleteProbing += i;
         // do not found any key
-        return false;
+        return isSuccess;
     }
 
     bool search(uint key) {
         uint hash = hashFunction(key);
+        status.searchCount++;
+        bool isSuccess = false;
         // linear probing
         uint i = 0;
         while (i < size)  {
             uint idx = (hash + i) & (size - 1);
             // empty slot
             if (!table[idx].isOccupied) {
-                return false;
+                break;
                 // key found
             } else if (table[idx].key == key) {
                 // key found and not deleted
                 if (!table[idx].isDeleted) {
-                    return true;
+                    isSuccess = true;
+                    break;
                 }
                 // key found but deleted
-                return false;
+                break;
             }
             i++;
         }
+        status.maxSearchProbing = std::max(i, status.maxInsertProbing);
+        status.totalSearchProbing += i;
         // do not found any key
-        return false;
+        return isSuccess;
+    }
+
+    float getCollisionRate() {
+        return (1.0f * status.insertionCollisions / status.insertCount);
+    }
+
+    unsigned long long getAVGInsertionProbing() {
+        return ((status.totalInsertProbing + 1) / status.insertCount);
+    }
+
+    unsigned long long getAVGRemoveProbing() {
+        return ((status.totalDeleteProbing + 1) / status.deleteCount);
+    }
+
+    unsigned long long getAVGSearchProbing() {
+        return ((status.totalSearchProbing + 1) / status.searchCount);
+    }
+
+    uint getMaxInsertProbing() {
+        return status.maxInsertProbing;
+    }
+
+    uint getMaxRemoveProbing() {
+        return status.maxDeleteProbing;
+    }
+
+    uint getMaxSearchProbing() {
+        return status.maxSearchProbing;
     }
 
     // assume that tableSize is always be a power of 2
