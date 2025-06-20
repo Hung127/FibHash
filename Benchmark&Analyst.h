@@ -10,14 +10,14 @@
 
 using namespace std;
 
-vector<int> generateKeys(int count, const string& type) {
-	vector<int> keys;
+vector<uint> generateKeys(int count, const string& type) {
+	vector<uint> keys;
 	random_device rd; // Initialize seed for mt19937
 	mt19937 gen(rd()); // Random number generator
 
 	if (type == "Random") {
 		uniform_int_distribution<> dis(0, MAX_KEY); // Random distribution
-		for (int i = 0; i < count; i++) {
+		for (int i = 0; i < count; i++) {	
 			keys.push_back(dis(gen));
 		}
 	}
@@ -36,10 +36,30 @@ vector<int> generateKeys(int count, const string& type) {
 	return keys;
 }
 
-void runExperiment(int numKeys, const string& keyType) {
-	vector<int> keys = generateKeys(numKeys, keyType);
+void generateTest(const string& filename, int numKeys, const string& keyType) {
+	ofstream out(filename);
+
+	if (!out.is_open()) {
+		std::cerr << "File error\n";
+		return;
+	}
+
+	out << numKeys << "\n";
+	vector<uint> arr = generateKeys(numKeys, keyType);
+	for (int i = 0; i < numKeys; i++) {
+		out << arr[i] << (i < numKeys - 1 ? " " : "\n");
+	}
+
+	out.close();
+	cout << "Generating test for " << filename << " with " << numKeys << " keys of type " << keyType << endl;
+}
+	
+
+void runExperiment(const string& filename, int numKeys, const string& keyType) {
+	vector<uint> keys = generateKeys(numKeys, keyType);
 	cout << "\Experiment with " << numKeys << " keys (" << keyType << ")\n";
 
+	generateTest(filename, numKeys, keyType);
 	// Fibonacci Hashing
 	HashTable htFib(TABLE_SIZE, true);
 	
