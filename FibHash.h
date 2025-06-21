@@ -6,8 +6,6 @@
 #define uint unsigned int
 #define FIB_CONST 2654435759
 #define WORD_SIZE 32
-#define MAX_KEY 1000000
-#define TABLE_SIZE 1024 // 2^10
 
 uint getLog2(uint num) {
     // every number needs at least 1 bit to represent
