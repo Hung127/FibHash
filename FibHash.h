@@ -204,7 +204,7 @@ public:
             }
             i++;
         }
-        status.maxSearchProbing = std::max(i, status.maxInsertProbing);
+        status.maxSearchProbing = std::max(i, status.maxSearchProbing);
         status.totalSearchProbing += i;
         // do not found any key
         return isSuccess;
