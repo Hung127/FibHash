@@ -126,6 +126,7 @@ void runExperiment(const string& inputFile, int numKeys, const string& keyType, 
 	vector<string> statLabels = {
 		"Time for insert: ",
 		"Time for search: ",
+		"Time for remove: ",
 		"Collision rate: ",
 		"Average Probe Length (insert): ",
 		"Average Probe Length (search): ",
