@@ -80,9 +80,9 @@ void generateTest(const string& filename, int numKeys, const string& keyType) {
 
 // input file is the file that we logged the array into it (input file should be a blank file)
 // output file is the file that stores result
-void runExperiment(const string& inputFile, int numKeys, const string& keyType, ostream& os) {
+void runExperiment(const string& inputFile, int numKeys, const string& keyType, const string &outputFile) {
 	vector<uint> keys = generateKeys(numKeys, keyType);
-	cout << "\Experiment with " << numKeys << " keys (" << keyType << ")\n";
+	cout << "Experiment with " << numKeys << " keys (" << keyType << ")\n";
 
 	generateTest(inputFile, numKeys, keyType);
 	// Fibonacci Hashing
@@ -110,10 +110,11 @@ void runExperiment(const string& inputFile, int numKeys, const string& keyType, 
 	end = chrono::high_resolution_clock::now();
 	double removeTime = chrono::duration<double, micro>(end - start).count();
 
-	os << fixed << setprecision(2);
+	ofstream os(outputFile);
 
-	Record rec("FibonacciHashing " + keyType);
-	rec.writeToFile(os);
+	os << fixed << setprecision(2);
+	cout << fixed << setprecision(2);
+
 	vector<string> statLabels = {
 		"Time for insert: ",
 		"Time for search: ",
@@ -138,11 +139,16 @@ void runExperiment(const string& inputFile, int numKeys, const string& keyType, 
 		to_string(htFib.getMaxRemoveProbing())
 	};
 
-	Record title(statLabels);
-	Record stats(statValues);
+	if (os.is_open()) {
+		Record rec("FibonacciHashing " + keyType);
+		Record title(statLabels);
+		Record stats(statValues);
 
-	title.writeToFile(os);
-	stats.writeToFile(os);
+		rec.writeToFile(os);
+		title.writeToFile(os);
+		stats.writeToFile(os);
+	}
+
 	cout << "Fibonacci Hashing\n";
 	for (int i = 0; i < statLabels.size(); ++i) {
 		cout << " " << statLabels[i] << statValues[i] << '\n';
@@ -175,8 +181,6 @@ void runExperiment(const string& inputFile, int numKeys, const string& keyType, 
 	end = chrono::high_resolution_clock::now();
 	removeTime = chrono::duration<double, micro>(end - start).count();
 
-	Record rec2("Modulo Hashing " + keyType);
-	rec2.writeToFile(os);
 
 	vector<string> statLabels2 = {
 		"Time for insert: ",
@@ -202,11 +206,17 @@ void runExperiment(const string& inputFile, int numKeys, const string& keyType, 
 		to_string(htMod.getMaxRemoveProbing())
 	};
 
-	Record title2(statLabels);
-	Record stats2(statValues);
+	if (os.is_open()) {
 
-	title2.writeToFile(os);
-	stats2.writeToFile(os);
+		Record title2(statLabels2);
+		Record stats2(statValues2);
+		Record rec2("Modulo Hashing " + keyType);
+
+		rec2.writeToFile(os);
+		title2.writeToFile(os);
+		stats2.writeToFile(os);
+		os.close();
+	}
 
 	cout << "Modulo Hashing\n";
 	for (int i = 0; i < statLabels2.size(); ++i) {
