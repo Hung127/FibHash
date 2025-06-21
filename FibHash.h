@@ -1,8 +1,11 @@
-#ifndef FIB_HASH_H
-#define FIB_HASH_H
+#ifndef FibHash_h
+#define FibHash_h
+
+#pragma once
 #include <iostream>
 #include <vector>
 #include <functional>
+
 using uint = unsigned int;
 #define FIB_CONST 2654435759
 #define WORD_SIZE 32
