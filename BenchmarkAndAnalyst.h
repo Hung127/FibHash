@@ -46,7 +46,7 @@ std::vector<uint> generateKeys(int count, const std::string& type) {
 		keys.push_back(1);
 		for (int i = 2; i < count; i++) {
 			// % MAX_KEY to ensure that it does not exceed the max
-			keys.push_back(keys[i - 1] + keys[i - 2] % (MAX_KEY));
+			keys.push_back((keys[i - 1] + keys[i - 2]) % MAX_KEY);
 		}
 		// shuffle the array
 		for (int i = keys.size() - 1; i >= 0; i--) {
