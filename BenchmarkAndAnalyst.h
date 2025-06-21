@@ -14,16 +14,16 @@
 #define MAX_KEY 1 << 30
 #define TABLE_SIZE 4096u // 2^12
 
-using namespace std;
 
-vector<uint> generateKeys(int count, const string& type) {
-	vector<uint> keys;
-	srand((unsigned)time(NULL));
-	random_device rd; // Initialize seed for mt19937
-	mt19937 gen(rd()); // Random number generator
+
+std::vector<uint> generateKeys(int count, const std::string& type) {
+	std::vector<uint> keys;
+	std::srand((unsigned)std::time(NULL));
+	std::random_device rd; // Initialize seed for std::mt19937
+	std::mt19937 gen(rd()); // Random number generator
 
 	if (type == "Random") {
-		uniform_int_distribution<> dis(0, MAX_KEY); // Random distribution
+		std::uniform_int_distribution<> dis(0, MAX_KEY); // Random distribution
 		for (int i = 0; i < count; i++) {	
 			keys.push_back(dis(gen));
 		}
