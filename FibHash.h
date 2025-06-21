@@ -3,7 +3,7 @@
 #include <iostream>
 #include <vector>
 #include <functional>
-#define uint unsigned int
+using uint = unsigned int;
 #define FIB_CONST 2654435759
 #define WORD_SIZE 32
 
