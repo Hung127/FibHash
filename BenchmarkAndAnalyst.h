@@ -19,7 +19,6 @@
 
 std::vector<uint> generateKeys(int count, const std::string& type) {
 	std::vector<uint> keys;
-	std::srand((unsigned)std::time(NULL));
 	std::random_device rd; // Initialize seed for std::mt19937
 	std::mt19937 gen(rd()); // Random number generator
 
@@ -35,7 +34,7 @@ std::vector<uint> generateKeys(int count, const std::string& type) {
 		}
 	}
 	else if (type == "Clustered") {
-		uint randomNum = rand() % ((MAX_KEY) - 100);
+		uint randomNum = gen() % ((MAX_KEY) - 100);
 		const uint RANDOM_RANGE = 100;
 		std::uniform_int_distribution<> dis(randomNum, randomNum + RANDOM_RANGE);
 		for (int i = 0; i < count; i++) {
@@ -50,13 +49,7 @@ std::vector<uint> generateKeys(int count, const std::string& type) {
 			keys.push_back((keys[i - 1] + keys[i - 2]) % MAX_KEY);
 		}
 		// shuffle the array
-		for (int i = keys.size() - 1; i >= 0; i--) {
-      
-			// Generate the random index 
-			int j = rand() % (i + 1);
-			std::swap(keys[i], keys[j]);
-    	}
-
+		std::shuffle(keys.begin(), keys.end(), gen);
 	} else if (type == "Modulo Sensitive") {
 		for (uint i = 0; i < count; i++) {
 			// % MAX_KEY to ensure that it does not exceed the max
