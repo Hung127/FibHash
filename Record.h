@@ -18,7 +18,10 @@ public:
     
     void writeToFile(std::ostream &os) const {
         for (int i = 0; i < len; i++) {
-            os << cols[i] << ",";
+            os << cols[i];
+            if (i < len - 1) {
+                os << ",";
+            }
         }
         os << "\n";
     }
