@@ -11,7 +11,7 @@
 #include <fstream>
 #include "Record.h"
 
-#define MAX_KEY 1 << 30
+#define MAX_KEY (1u << 30)
 #define TABLE_SIZE 4096u // 2^12
 
 
