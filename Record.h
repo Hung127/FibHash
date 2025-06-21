@@ -1,8 +1,6 @@
 #ifndef Record_h
 #define Record_h
 
-#pragma once
-
 #include <iostream>
 #include <string>
 #include <vector>

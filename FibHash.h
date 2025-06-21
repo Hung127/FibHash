@@ -1,7 +1,6 @@
 #ifndef FibHash_h
 #define FibHash_h
 
-#pragma once
 #include <iostream>
 #include <vector>
 #include <functional>

@@ -1,7 +1,6 @@
 #ifndef	BenchmarkAnalyst_h
 #define BenchmarkAnalyst_h
 
-#pragma once
 #include "FibHash.h"
 #include <iostream>
 #include <vector>
