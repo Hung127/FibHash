@@ -6,7 +6,7 @@
 #include <functional>
 
 using uint = unsigned int;
-#define FIB_CONST 2654435759
+constexpr unsigned int FIB_CONST = 2654435759u;
 #define WORD_SIZE 32
 
 uint getLog2(uint num) {
@@ -217,15 +217,15 @@ public:
     }
 
     unsigned long long getAVGInsertionProbing() {
-        return ((status.totalInsertProbing + 1) / status.insertCount);
+        return ((status.totalInsertProbing) / status.insertCount);
     }
 
     unsigned long long getAVGRemoveProbing() {
-        return ((status.totalDeleteProbing + 1) / status.deleteCount);
+        return ((status.totalDeleteProbing) / status.deleteCount);
     }
 
     unsigned long long getAVGSearchProbing() {
-        return ((status.totalSearchProbing + 1) / status.searchCount);
+        return ((status.totalSearchProbing) / status.searchCount);
     }
 
     uint getMaxInsertProbing() {
