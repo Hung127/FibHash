@@ -1,5 +1,5 @@
-#ifndef Benchmark&Analyst_h
-#define Benchmark&Analyst_h
+#ifndef	BenchmarkAnalyst_h
+#define BenchmarkAnalyst_h
 
 #include "FibHash.h"
 #include <iostream>
@@ -7,6 +7,11 @@
 #include <chrono>
 #include <random>
 #include <iomanip>
+#include <fstream>
+#include "Record.h"
+
+#define MAX_KEY 1 << 30
+#define TABLE_SIZE 4096u // 2^12
 
 using namespace std;
 
@@ -27,9 +32,25 @@ vector<uint> generateKeys(int count, const string& type) {
 		}
 	}
 	else if (type == "Clustered") {
-		uniform_int_distribution<> dis(5000, 5100);
+		uint randomNum = rand() % ((MAX_KEY) - 100);
+		const uint RANDOM_RANGE = 100;
+		uniform_int_distribution<> dis(randomNum, randomNum + RANDOM_RANGE);
 		for (int i = 0; i < count; i++) {
 			keys.push_back(dis(gen));
+		}
+	} else if (type == "Fibonacci Sensitive") {
+		// generate a fibonacci sequence
+		keys.push_back(0);
+		keys.push_back(1);
+		for (int i = 2; i < count; i++) {
+			// % MAX_KEY to ensure that it does not exceed the max
+			keys.push_back(keys[i - 1] + keys[i - 2] % (MAX_KEY));
+		}
+
+	} else if (type == "Modulo Sensitive") {
+		for (uint i = 0; i < count; i++) {
+			// % MAX_KEY to ensure that it does not exceed the max
+			keys.push_back((TABLE_SIZE * i) % (MAX_KEY));
 		}
 	}
 
@@ -40,10 +61,12 @@ void generateTest(const string& filename, int numKeys, const string& keyType) {
 	ofstream out(filename);
 
 	if (!out.is_open()) {
-		std::cerr << "File error\n";
+		cerr << "File error\n";
 		return;
 	}
 
+	cout << "Generating test for " << filename << " with " << numKeys << " keys of type " << keyType << endl;
+	// first line is the array length
 	out << numKeys << "\n";
 	vector<uint> arr = generateKeys(numKeys, keyType);
 	for (int i = 0; i < numKeys; i++) {
@@ -51,86 +74,144 @@ void generateTest(const string& filename, int numKeys, const string& keyType) {
 	}
 
 	out.close();
-	cout << "Generating test for " << filename << " with " << numKeys << " keys of type " << keyType << endl;
+	cout << "Generated test for " << filename << " with " << numKeys << " keys of type " << keyType << endl;
 }
 	
 
-void runExperiment(const string& filename, int numKeys, const string& keyType) {
+// input file is the file that we logged the array into it (input file should be a blank file)
+// output file is the file that stores result
+void runExperiment(const string& inputFile, int numKeys, const string& keyType, ostream& os) {
 	vector<uint> keys = generateKeys(numKeys, keyType);
 	cout << "\Experiment with " << numKeys << " keys (" << keyType << ")\n";
 
-	generateTest(filename, numKeys, keyType);
+	generateTest(inputFile, numKeys, keyType);
 	// Fibonacci Hashing
 	HashTable htFib(TABLE_SIZE, true);
 	
 	// Measure time for insert
-	auto start = std::chrono::high_resolution_clock::now();
+	auto start = chrono::high_resolution_clock::now();
 	for (unsigned int key : keys) {
 		htFib.insert(key);
 	}
-	auto end = std::chrono::high_resolution_clock::now();
-	double insertTime = std::chrono::duration<double, std::micro>(end - start).count();
+	auto end = chrono::high_resolution_clock::now();
+	double insertTime = chrono::duration<double, micro>(end - start).count();
 
 	// Measure time for search
-	start = std::chrono::high_resolution_clock::now();
+	start = chrono::high_resolution_clock::now();
 	for (unsigned int key : keys) {
 		htFib.search(key);
 	}
-	end = std::chrono::high_resolution_clock::now();
-	double searchTime = std::chrono::duration<double, std::micro>(end - start).count();
+	end = chrono::high_resolution_clock::now();
+	double searchTime = chrono::duration<double, micro>(end - start).count();
 
 	// Measure time for remove
-	start = std::chrono::high_resolution_clock::now();
+	start = chrono::high_resolution_clock::now();
 	for (int key : keys) htFib.remove(key);
-	end = std::chrono::high_resolution_clock::now();
-	double removeTime = std::chrono::duration<double, std::micro>(end - start).count();
+	end = chrono::high_resolution_clock::now();
+	double removeTime = chrono::duration<double, micro>(end - start).count();
 
-	cout << std::fixed << std::setprecision(2);
-	cout << "Fibonacci Hashing:\n";
-	cout << " Time for insert: " << insertTime << " µs\n";
-	cout << " Time for search: " << searchTime << " µs\n";
-	cout << " Ratio Collision: " << htFib.getCollisionRate() * 100 << "%\n";
-	cout << " Average Probe Length (insert): " << htFib.getAVGInsertionProbing() << "\n";
-	cout << " Average Probe Length (search): " << htFib.getAVGSearchProbing() << "\n";
-	cout << " Average Probe Length (remove): " << htFib.getAVGRemoveProbing() << "\n";
-	cout << " Maximum Probe Length (insert): " << htFib.getMaxInsertProbing() << "\n";
-	cout << " Maximum Probe Length (search): " << htFib.getMaxSearchProbing() << "\n";
-	cout << " Maximum Probe Length (remove): " << htFib.getMaxRemoveProbing() << "\n";
+	os << fixed << setprecision(2);
+
+	Record rec("FibonacciHashing " + keyType);
+	rec.writeToFile(os);
+	vector<string> statLabels = {
+		"Time for insert: ",
+		"Time for search: ",
+		"Collision rate: ",
+		"Average Probe Length (insert): ",
+		"Average Probe Length (search): ",
+		"Average Probe Length (remove): ",
+		"Maximum Probe Length (insert): ",
+		"Maximum Probe Length (search): ",
+		"Maximum Probe Length (remove): "
+	};
 	
+	vector<string> statValues = {
+		to_string(insertTime) + " Âµs",
+		to_string(searchTime) + " Âµs",
+		to_string(htFib.getCollisionRate() * 100) + "%",
+		to_string(htFib.getAVGInsertionProbing()),
+		to_string(htFib.getAVGSearchProbing()),
+		to_string(htFib.getAVGRemoveProbing()),
+		to_string(htFib.getMaxInsertProbing()),
+		to_string(htFib.getMaxSearchProbing()),
+		to_string(htFib.getMaxRemoveProbing())
+	};
+
+	Record title(statLabels);
+	Record stats(statValues);
+
+	title.writeToFile(os);
+	stats.writeToFile(os);
+	cout << "Fibonacci Hashing\n";
+	for (int i = 0; i < statLabels.size(); ++i) {
+		cout << " " << statLabels[i] << statValues[i] << '\n';
+	}
+	
+	// ------------------------------------------------------------------------------------------------
+
 	// Modulo Hashing
 	HashTable htMod(TABLE_SIZE, false);
 
 	// Measure time for insert
-	start = std::chrono::high_resolution_clock::now();
+	start = chrono::high_resolution_clock::now();
 	for (unsigned int key : keys) {
 		htMod.insert(key);
 	}
-	end = std::chrono::high_resolution_clock::now();
-	insertTime = std::chrono::duration<double, std::micro>(end - start).count();
+	end = chrono::high_resolution_clock::now();
+	insertTime = chrono::duration<double, micro>(end - start).count();
 
 	// Measure time for search
-	start = std::chrono::high_resolution_clock::now();
+	start = chrono::high_resolution_clock::now();
 	for (unsigned int key : keys) {
 		htMod.search(key);
 	}
-	end = std::chrono::high_resolution_clock::now();
-	searchTime = std::chrono::duration<double, std::micro>(end - start).count();
+	end = chrono::high_resolution_clock::now();
+	searchTime = chrono::duration<double, micro>(end - start).count();
 
 	// Measure time for remove
-	start = std::chrono::high_resolution_clock::now();
+	start = chrono::high_resolution_clock::now();
 	for (int key : keys) htMod.remove(key);
-	end = std::chrono::high_resolution_clock::now();
-	removeTime = std::chrono::duration<double, std::micro>(end - start).count();
+	end = chrono::high_resolution_clock::now();
+	removeTime = chrono::duration<double, micro>(end - start).count();
 
-	cout << "Modulo Hashing:\n";
-	cout << " Time for insert: " << insertTime << " µs\n";
-	cout << " Time for search: " << searchTime << " µs\n";
-	cout << " Ratio Collision: " << htMod.getCollisionRate() * 100 << "%\n";
-	cout << " Average Probe Length (insert): " << htMod.getAVGInsertionProbing() << "\n";
-	cout << " Average Probe Length (search): " << htMod.getAVGSearchProbing() << "\n";
-	cout << " Average Probe Length (search): " << htMod.getAVGRemoveProbing() << "\n";
-	cout << " Maximum Probe Length (insert): " << htMod.getMaxInsertProbing() << "\n";
-	cout << " Maximum Probe Length (search): " << htMod.getMaxSearchProbing() << "\n";
-	cout << " Maximum Probe Length (remove): " << htMod.getMaxRemoveProbing() << "\n";
+	Record rec2("Modulo Hashing " + keyType);
+	rec2.writeToFile(os);
+
+	vector<string> statLabels2 = {
+		"Time for insert: ",
+		"Time for search: ",
+		"Collision rate: ",
+		"Average Probe Length (insert): ",
+		"Average Probe Length (search): ",
+		"Average Probe Length (remove): ",
+		"Maximum Probe Length (insert): ",
+		"Maximum Probe Length (search): ",
+		"Maximum Probe Length (remove): "
+	};
+
+	vector<string> statValues2 = {
+		to_string(insertTime) + " Âµs",
+		to_string(searchTime) + " Âµs",
+		to_string(htMod.getCollisionRate() * 100) + "%",
+		to_string(htMod.getAVGInsertionProbing()),
+		to_string(htMod.getAVGSearchProbing()),
+		to_string(htMod.getAVGRemoveProbing()),
+		to_string(htMod.getMaxInsertProbing()),
+		to_string(htMod.getMaxSearchProbing()),
+		to_string(htMod.getMaxRemoveProbing())
+	};
+
+	Record title2(statLabels);
+	Record stats2(statValues);
+
+	title2.writeToFile(os);
+	stats2.writeToFile(os);
+
+	cout << "Modulo Hashing\n";
+	for (int i = 0; i < statLabels2.size(); ++i) {
+		cout << " " << statLabels2[i] << statValues2[i] << '\n';
+	}
+
 }
-#endif // !Benchmark&Analyst_h
+#endif // !BenchmarkAnalyst_h
