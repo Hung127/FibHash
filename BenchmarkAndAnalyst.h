@@ -5,6 +5,7 @@
 #include <iostream>
 #include <vector>
 #include <chrono>
+#include <ctime>
 #include <random>
 #include <iomanip>
 #include <fstream>
@@ -17,6 +18,7 @@ using namespace std;
 
 vector<uint> generateKeys(int count, const string& type) {
 	vector<uint> keys;
+	srand((unsigned)time(NULL));
 	random_device rd; // Initialize seed for mt19937
 	mt19937 gen(rd()); // Random number generator
 
@@ -46,6 +48,13 @@ vector<uint> generateKeys(int count, const string& type) {
 			// % MAX_KEY to ensure that it does not exceed the max
 			keys.push_back(keys[i - 1] + keys[i - 2] % (MAX_KEY));
 		}
+		// shuffle the array
+		for (int i = keys.size() - 1; i >= 0; i--) {
+      
+			// Generate the random index 
+			int j = rand() % (i + 1);
+			swap(keys[i], keys[j]);
+    	}
 
 	} else if (type == "Modulo Sensitive") {
 		for (uint i = 0; i < count; i++) {
@@ -53,7 +62,6 @@ vector<uint> generateKeys(int count, const string& type) {
 			keys.push_back((TABLE_SIZE * i) % (MAX_KEY));
 		}
 	}
-
 	return keys;
 }
 
