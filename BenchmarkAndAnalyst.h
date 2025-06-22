@@ -14,6 +14,7 @@
 #define MAX_KEY (1u << 30)
 #define TABLE_SIZE 4096u // 2^12
 
+std::vector<std::string> dataTypes = { "Random", "Sequential", "Clustered", "Fibonacci_Sensitive", "Modulo_Sensitive" };
 
 
 std::vector<uint> generateKeys(int count, const std::string& type) {
@@ -39,7 +40,7 @@ std::vector<uint> generateKeys(int count, const std::string& type) {
 		for (int i = 0; i < count; i++) {
 			keys.push_back(dis(gen));
 		}
-	} else if (type == "Fibonacci Sensitive") {
+	} else if (type == "Fibonacci_Sensitive") {
 		// generate a fibonacci sequence
 		keys.push_back(0);
 		keys.push_back(1);
@@ -49,7 +50,7 @@ std::vector<uint> generateKeys(int count, const std::string& type) {
 		}
 		// shuffle the array
 		std::shuffle(keys.begin(), keys.end(), gen);
-	} else if (type == "Modulo Sensitive") {
+	} else if (type == "Modulo_Sensitive") {
 		for (uint i = 0; i < count; i++) {
 			// % MAX_KEY to ensure that it does not exceed the max
 			keys.push_back((TABLE_SIZE * i) % (MAX_KEY));
