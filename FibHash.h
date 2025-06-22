@@ -35,13 +35,14 @@ private:
         uint maxInsertProbing;
         uint maxSearchProbing;
         uint maxDeleteProbing;
+        uint maxCount;
         uint insertCount;
         uint searchCount;
         uint deleteCount;
         uint insertionCollisions;
         TestSpecs() : totalDeleteProbing(0), totalInsertProbing(0),
                         totalSearchProbing(0), maxInsertProbing(0),
-                        maxSearchProbing(0), maxDeleteProbing(0),
+                        maxSearchProbing(0), maxDeleteProbing(0), maxCount(0),
                         insertCount(0), searchCount(0), deleteCount(0), insertionCollisions(0) {}
     };
 
@@ -102,7 +103,6 @@ public:
         if (count >= size) {
             return false;
         }
-        bool isSuccess = false;
         bool foundFirstDeleted = false;
         uint firstDeletedIdx = 0; // set a temp value for firstDeleted idx
         uint i = 0;
@@ -145,6 +145,7 @@ public:
             status.insertionCollisions++;
         }
         status.totalInsertProbing += i;
+        status.maxCount++;
         status.maxInsertProbing = std::max(i, status.maxInsertProbing);
 
         return true;
@@ -214,6 +215,10 @@ public:
 
     float getCollisionRate() {
         return (1.0f * status.insertionCollisions / status.insertCount);
+    }
+
+    float getLoadFactor() {
+        return (1.0f * status.maxCount / size);
     }
 
     unsigned long long getAVGInsertionProbing() {

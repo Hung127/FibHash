@@ -12,7 +12,7 @@
 #include "Record.h"
 
 #define MAX_KEY (1u << 30)
-#define TABLE_SIZE 4096u // 2^12
+#define DEFAULT_SIZE 4096u // 2^12
 
 std::vector<std::string> dataTypes = { "Random", "Sequential", "Clustered", "Fibonacci_Sensitive", "Modulo_Sensitive" };
 
@@ -29,13 +29,12 @@ std::vector<uint> generateKeys(int count, const std::string& type) {
 		}
 	}
 	else if (type == "Sequential") {
-		for (int i = 0; i < count; i++) {
-			keys.push_back(i);
-		}
+		std::uniform_int_distribution<> dis(0, MAX_KEY); // Random distribution
+		std::sort(keys.begin(), keys.end());
 	}
 	else if (type == "Clustered") {
-		uint randomNum = gen() % ((MAX_KEY)-100);
-		const uint RANDOM_RANGE = 100;
+		const uint RANDOM_RANGE = std::max(1u, (uint) std::sqrt(count));
+		uint randomNum = gen() % ((MAX_KEY)-RANDOM_RANGE);
 		std::uniform_int_distribution<> dis(randomNum, randomNum + RANDOM_RANGE);
 		for (int i = 0; i < count; i++) {
 			keys.push_back(dis(gen));
@@ -55,7 +54,7 @@ std::vector<uint> generateKeys(int count, const std::string& type) {
 	else if (type == "Modulo_Sensitive") {
 		for (uint i = 0; i < count; i++) {
 			// % MAX_KEY to ensure that it does not exceed the max
-			keys.push_back((TABLE_SIZE * i) % (MAX_KEY));
+			keys.push_back((DEFAULT_SIZE * i) % (MAX_KEY));
 		}
 	}
 	return keys;
@@ -89,8 +88,10 @@ void runExperiment(const std::string& inputFile, int numKeys, const std::string&
 	std::cout << "Experiment with " << numKeys << " keys (" << keyType << ")\n";
 
 	generateTest(inputFile, numKeys, keyType);
+	uint tableSizeLog = (unsigned int) ceil(std::log2(numKeys));
+
 	// Fibonacci Hashing
-	HashTable htFib(TABLE_SIZE, true);
+	HashTable htFib(std::max(DEFAULT_SIZE, 1u << tableSizeLog), true);
 
 	// Measure time for insert
 	auto start = std::chrono::high_resolution_clock::now();
@@ -124,6 +125,7 @@ void runExperiment(const std::string& inputFile, int numKeys, const std::string&
 		"Time for search: ",
 		"Time for remove: ",
 		"Collision rate: ",
+		"Load Factor: ",
 		"Average Probe Length (insert): ",
 		"Average Probe Length (search): ",
 		"Average Probe Length (remove): ",
@@ -137,6 +139,7 @@ void runExperiment(const std::string& inputFile, int numKeys, const std::string&
 		std::to_string(searchTime) + " us",
 		std::to_string(removeTime) + " us",
 		std::to_string(htFib.getCollisionRate() * 100) + "%",
+		std::to_string(htFib.getLoadFactor() * 100) + "%",
 		std::to_string(htFib.getAVGInsertionProbing()),
 		std::to_string(htFib.getAVGSearchProbing()),
 		std::to_string(htFib.getAVGRemoveProbing()),
@@ -163,7 +166,7 @@ void runExperiment(const std::string& inputFile, int numKeys, const std::string&
 	// ------------------------------------------------------------------------------------------------
 
 	// Modulo Hashing
-	HashTable htMod(TABLE_SIZE, false);
+	HashTable htMod(std::max(DEFAULT_SIZE, 1u << tableSizeLog), false);
 
 	// Measure time for insert
 	start = std::chrono::high_resolution_clock::now();
@@ -192,6 +195,7 @@ void runExperiment(const std::string& inputFile, int numKeys, const std::string&
 		std::to_string(searchTime) + " us",
 		std::to_string(removeTime) + " us",
 		std::to_string(htMod.getCollisionRate() * 100) + "%",
+		std::to_string(htMod.getLoadFactor() * 100) + "%",
 		std::to_string(htMod.getAVGInsertionProbing()),
 		std::to_string(htMod.getAVGSearchProbing()),
 		std::to_string(htMod.getAVGRemoveProbing()),
