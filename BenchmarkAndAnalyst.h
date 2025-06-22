@@ -30,6 +30,9 @@ std::vector<uint> generateKeys(int count, const std::string& type) {
 	}
 	else if (type == "Sequential") {
 		std::uniform_int_distribution<> dis(0, MAX_KEY); // Random distribution
+		for (int i = 0; i < count; i++) {
+			keys.push_back(dis(gen));
+		}
 		std::sort(keys.begin(), keys.end());
 	}
 	else if (type == "Clustered") {
