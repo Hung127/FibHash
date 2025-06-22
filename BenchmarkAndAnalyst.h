@@ -12,8 +12,9 @@
 #include "Record.h"
 
 #define MAX_KEY (1u << 30)
-#define TABLE_SIZE 4096u // 2^12
+#define DEFAULT_SIZE 4096u // 2^12
 
+std::vector<std::string> dataTypes = { "Random", "Sequential", "Clustered", "Fibonacci_Sensitive", "Modulo_Sensitive" };
 
 
 std::vector<uint> generateKeys(int count, const std::string& type) {
@@ -23,23 +24,23 @@ std::vector<uint> generateKeys(int count, const std::string& type) {
 
 	if (type == "Random") {
 		std::uniform_int_distribution<> dis(0, MAX_KEY); // Random distribution
-		for (int i = 0; i < count; i++) {	
+		for (int i = 0; i < count; i++) {
 			keys.push_back(dis(gen));
 		}
 	}
 	else if (type == "Sequential") {
-		for (int i = 0; i < count; i++) {
-			keys.push_back(i);
-		}
+		std::uniform_int_distribution<> dis(0, MAX_KEY); // Random distribution
+		std::sort(keys.begin(), keys.end());
 	}
 	else if (type == "Clustered") {
-		uint randomNum = gen() % ((MAX_KEY) - 100);
-		const uint RANDOM_RANGE = 100;
+		const uint RANDOM_RANGE = std::max(1u, (uint) std::sqrt(count));
+		uint randomNum = gen() % ((MAX_KEY)-RANDOM_RANGE);
 		std::uniform_int_distribution<> dis(randomNum, randomNum + RANDOM_RANGE);
 		for (int i = 0; i < count; i++) {
 			keys.push_back(dis(gen));
 		}
-	} else if (type == "Fibonacci Sensitive") {
+	}
+	else if (type == "Fibonacci_Sensitive") {
 		// generate a fibonacci sequence
 		keys.push_back(0);
 		keys.push_back(1);
@@ -49,10 +50,11 @@ std::vector<uint> generateKeys(int count, const std::string& type) {
 		}
 		// shuffle the array
 		std::shuffle(keys.begin(), keys.end(), gen);
-	} else if (type == "Modulo Sensitive") {
+	}
+	else if (type == "Modulo_Sensitive") {
 		for (uint i = 0; i < count; i++) {
 			// % MAX_KEY to ensure that it does not exceed the max
-			keys.push_back((TABLE_SIZE * i) % (MAX_KEY));
+			keys.push_back((DEFAULT_SIZE * i) % (MAX_KEY));
 		}
 	}
 	return keys;
@@ -77,18 +79,20 @@ void generateTest(const std::string& filename, int numKeys, const std::string& k
 	out.close();
 	std::cout << "Generated test for " << filename << " with " << numKeys << " keys of type " << keyType << std::endl;
 }
-	
+
 
 // input file is the file that we logged the array into it (input file should be a blank file)
 // output file is the file that stores result
-void runExperiment(const std::string& inputFile, int numKeys, const std::string& keyType, const std::string &outputFile) {
+void runExperiment(const std::string& inputFile, int numKeys, const std::string& keyType, const std::string& outputFile) {
 	std::vector<uint> keys = generateKeys(numKeys, keyType);
 	std::cout << "Experiment with " << numKeys << " keys (" << keyType << ")\n";
 
 	generateTest(inputFile, numKeys, keyType);
+	uint tableSizeLog = (unsigned int) ceil(std::log2(numKeys));
+
 	// Fibonacci Hashing
-	HashTable htFib(TABLE_SIZE, true);
-	
+	HashTable htFib(std::max(DEFAULT_SIZE, 1u << tableSizeLog), true);
+
 	// Measure time for insert
 	auto start = std::chrono::high_resolution_clock::now();
 	for (unsigned int key : keys) {
@@ -121,6 +125,7 @@ void runExperiment(const std::string& inputFile, int numKeys, const std::string&
 		"Time for search: ",
 		"Time for remove: ",
 		"Collision rate: ",
+		"Load Factor: ",
 		"Average Probe Length (insert): ",
 		"Average Probe Length (search): ",
 		"Average Probe Length (remove): ",
@@ -128,12 +133,13 @@ void runExperiment(const std::string& inputFile, int numKeys, const std::string&
 		"Maximum Probe Length (search): ",
 		"Maximum Probe Length (remove): "
 	};
-	
+
 	std::vector<std::string> statValues = {
-		std::to_string(insertTime) + " µs",
-		std::to_string(searchTime) + " µs",
-		std::to_string(removeTime) + " µs",
+		std::to_string(insertTime) + " us",
+		std::to_string(searchTime) + " us",
+		std::to_string(removeTime) + " us",
 		std::to_string(htFib.getCollisionRate() * 100) + "%",
+		std::to_string(htFib.getLoadFactor() * 100) + "%",
 		std::to_string(htFib.getAVGInsertionProbing()),
 		std::to_string(htFib.getAVGSearchProbing()),
 		std::to_string(htFib.getAVGRemoveProbing()),
@@ -156,11 +162,11 @@ void runExperiment(const std::string& inputFile, int numKeys, const std::string&
 	for (int i = 0; i < statLabels.size(); ++i) {
 		std::cout << " " << statLabels[i] << statValues[i] << '\n';
 	}
-	
+
 	// ------------------------------------------------------------------------------------------------
 
 	// Modulo Hashing
-	HashTable htMod(TABLE_SIZE, false);
+	HashTable htMod(std::max(DEFAULT_SIZE, 1u << tableSizeLog), false);
 
 	// Measure time for insert
 	start = std::chrono::high_resolution_clock::now();
@@ -185,10 +191,11 @@ void runExperiment(const std::string& inputFile, int numKeys, const std::string&
 	removeTime = std::chrono::duration<double, std::micro>(end - start).count();
 
 	std::vector<std::string> statValues2 = {
-		std::to_string(insertTime) + " µs",
-		std::to_string(searchTime) + " µs",
-		std::to_string(removeTime) + " µs",
+		std::to_string(insertTime) + " us",
+		std::to_string(searchTime) + " us",
+		std::to_string(removeTime) + " us",
 		std::to_string(htMod.getCollisionRate() * 100) + "%",
+		std::to_string(htMod.getLoadFactor() * 100) + "%",
 		std::to_string(htMod.getAVGInsertionProbing()),
 		std::to_string(htMod.getAVGSearchProbing()),
 		std::to_string(htMod.getAVGRemoveProbing()),
