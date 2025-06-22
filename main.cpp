@@ -68,7 +68,7 @@ void processArg(int argc, char* argv[]) {
     runExperiment(fileIn, numKeys, type, fileOut);
 }
 
-int main(int argc, char* argv[]) { 
+int main(int argc, char* argv[]) {
     if (argc <= 1) {
         showHelp();
         return 0;
