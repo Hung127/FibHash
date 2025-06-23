@@ -7,8 +7,7 @@
 #include <vector>
 #include <string>
 
-// Assuming dataTypes is defined somewhere - if not, you'll need to define it
-extern std::vector<std::string> dataTypes; // or define it here if needed
+extern std::vector<std::string> dataTypes;
 
 bool isNumber(const std::string& s) {
     if (s.empty()) return false; // Handle empty string
