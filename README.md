@@ -19,7 +19,7 @@ Fibonacci hashing is a technique used to generate hash values by utilizing the F
     
 5.  The executable `fibonacci_hash` will be generated.
 
-## Usage
+## Code instruction
 
 1.  **Compile the Code**:  
     Run the compilation command as shown above to generate an executable named `hello`.
